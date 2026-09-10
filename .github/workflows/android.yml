@@ -28,37 +28,28 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # فلٹر کا یہ ورژن پروجیکٹ کے پرانے طریقوں کو بغیر کسی سخت ورژن چیکنگ کے قبول کر لیتا ہے
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.3'
+          flutter-version: '3.22.2'
           channel: 'stable'
 
-      # یہ وہ جادوئی سٹیپ ہے جو پروجیکٹ کے گریڈل اور پلگ انز کو جڑ سے بالکل نئے ورژن پر اپگریڈ کر دے گا
-      - name: Complete Android Graduate/Plugin Upgrade
+      - name: Fix Android Build Configuration
         run: |
           flutter clean
-          
-          # 1. گریڈل ریپر (Gradle Wrapper) کو 8.10.2 سے بڑھا کر 8.12 کرنا
-          if [ -f "android/gradle/wrapper/gradle-wrapper.properties" ]; then
-            sed -i 's/gradle-[0-9.]*-all.zip/gradle-8.12-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
-          fi
-          
-          # 2. اینڈرائیڈ گریڈل پلگ ان (AGP) کو 8.7.0 سے زبردستی 8.12.0 کرنا تاکہ نیا فلٹر مطمئن ہو جائے
-          find android -name "settings.gradle*" -exec sed -i 's/com.android.application" version "[0-9.]*"/com.android.application" version "8.12.0"/g' {} +
-          find android -name "build.gradle*" -exec sed -i 's/id("com.android.application") version "[0-9.]*"/id("com.android.application") version "8.12.0"/g' {} +
-          
-          # 3. تمام ضروری SDK سیٹنگز کو اپگریڈ کرنا
-          if [ -f "android/app/build.gradle.kts" ]; then
-            sed -i 's/compileSdk = [0-9]*/compileSdk = 36/g' android/app/build.gradle.kts
-            sed -i '/android {/a \    ndkVersion = "28.2.13676358"' android/app/build.gradle.kts
-          fi
-          
+          cd android
+          # اینڈرائیڈ ایس ڈی کے ورژنز کو سیٹ کرنا تاکہ ایم ایل کٹ خوش رہے
+          find . -name "build.gradle" -exec sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' {} +
+          find . -name "build.gradle" -exec sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 34/g' {} +
+          find . -name "build.gradle.kts" -exec sed -i 's/compileSdk = [0-9]*/compileSdk = 34/g' {} +
+          find . -name "build.gradle.kts" -exec sed -i 's/targetSdk = [0-9]*/targetSdk = 34/g' {} +
+          cd ..
           flutter pub get
 
       - name: Build Application APK
         run: |
-          # اب اینڈرائیڈ کا پورا سسٹم بالکل نیا ہو چکا ہے، اس لیے بلڈ کامیابی سے مکمل ہوگا
+          # بغیر کسی سخت فلیگ کے سیدھا بلڈ
           flutter build apk --debug
 
       - name: Upload Finished APK
