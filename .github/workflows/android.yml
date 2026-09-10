@@ -6,19 +6,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract ZIP File
+      - name: Extract ZIP file
         run: |
           unzip "neuro-trans-app (1).zip" -d extracted_source
           cd extracted_source
           if [ -d "$(ls -d */ | head -n 1)" ] && [ ! -f "pubspec.yaml" ]; then
-            mv $(ls -d */ | head -n 1)* ../
-            mv $(ls -d */ | head -n 1).* ../ || true
+            mv $(ls -d */ | head -n 1)* ./
+            mv $(ls -d */ | head -n 1).* ./ || true
           else
-            mv * ../
-            mv .* ../ || true
+            mv ./* ../ || true
           fi
           cd ..
           rm -rf extracted_source
@@ -32,14 +31,26 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.3' # گوگل ایم ایل کٹ کی ضرورت کے مطابق بالکل نیا ورژن
+          flutter-version: '3.47.3' # گوگل ایم ایل کٹ کی ضرورت کے مطابق بالکل فکس
           channel: 'stable'
 
-      - name: Fetch Dependencies
-        run: flutter pub get
+      # نیا سٹیپ 1: پرانی خراب ڈیپینڈینسیز کو نظرانداز اور ریموو کرنے کے لیے
+      - name: Remove Old/Incompatible Dependencies
+        run: |
+          flutter clean
+          # نیچے دی گئی کمانڈز پرانے پلگ انز کو ہٹا دیں گی
+          flutter pub remove google_mlkit_commons google_ml_kit --none || true
+
+      # نیا سٹیپ 2: گوگل ایم ایل کٹ کے بالکل نئے ورژنز زبردستی شامل کرنے کے لیے
+      - name: Add Fresh Google ML Kit Dependencies
+        run: |
+          flutter pub add google_ml_kit
+          flutter pub add google_mlkit_commons
+          flutter pub get
 
       - name: Build Application APK
-        run: flutter build apk --debug
+        run: |
+          flutter build apk --debug
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
