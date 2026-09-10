@@ -34,20 +34,24 @@ jobs:
           flutter-version: '3.47.3'
           channel: 'stable'
 
+      # یہ سٹیپ تصویر 4 اور 5 کے مطابق تمام ورژنز (SDK 36 اور NDK 28) کو خودکار طور پر زبردستی اپگریڈ کر دے گا
       - name: Fix Android Build Configuration
         run: |
           flutter clean
-          cd android
-          find . -name "build.gradle" -exec sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' {} +
-          find . -name "build.gradle" -exec sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 34/g' {} +
-          find . -name "build.gradle.kts" -exec sed -i 's/compileSdk = [0-9]*/compileSdk = 34/g' {} +
-          find . -name "build.gradle.kts" -exec sed -i 's/targetSdk = [0-9]*/targetSdk = 34/g' {} +
-          cd ..
+          cd android/app
+          
+          # compileSdk کو 34 سے بدل کر 36 کرنا (جیسا تصویر 4 میں لکھا ہے)
+          sed -i 's/compileSdk = 34/compileSdk = 36/g' build.gradle.kts
+          
+          # ndkVersion کو زبردستی نئے ورژن پر سیٹ کرنا (جیسا تصویر 5 میں لکھا ہے)
+          sed -i '/android {/a \    ndkVersion = "28.2.13676358"' build.gradle.kts
+          
+          cd ../..
           flutter pub get
 
       - name: Build Application APK
         run: |
-          # یہاں وہ فلیگ شامل کر دیا گیا ہے جو ورژن کے ٹکراؤ کو نظرانداز کر کے بلڈ مکمل کرے گا
+          # فلیگ کے ساتھ بلڈ رن کرنا تاکہ کوئی بھی پرانا ورژن کا ٹکراؤ بلڈ نہ روکے
           flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload Finished APK
