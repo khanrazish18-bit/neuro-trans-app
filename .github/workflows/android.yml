@@ -1,4 +1,3 @@
-
 name: Auto Unzip and Build APK
 on:
   workflow_dispatch:
@@ -32,18 +31,46 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.3' # ایم ایل کٹ کی ضرورت کے مطابق نیا ورژن
+          flutter-version: '3.47.3'
           channel: 'stable'
 
-      # یہ سٹیپ پرانی فائل کو مٹا کر نئے فلٹر کے مطابق بالکل فریش فائل لکھ دے گا
+      # یہ سٹیپ اینڈرائیڈ کی دونوں پریشان کن فائلوں کو مٹا کر بالکل نئے ورژنز لکھ دے گا
       - name: Completely Rewrite Android Configuration
         run: |
           flutter clean
           
-          # پرانی پریشان کن فائل کو بالکل صاف کرنا
-          rm -f android/app/build.gradle.kts
+          # 1. پرانی سیٹنگز فائل کو مٹانا اور بالکل نیا گریڈل پلگ ان (8.9.1) لکھنا
+          rm -f android/settings.gradle
+          cat << 'EOF' > android/settings.gradle
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  def propertiesFile = new File(settingsDir, "local.properties")
+                  if (propertiesFile.exists()) {
+                      propertiesFile.withReader("UTF-8") { reader -> properties.load(reader) }
+                  }
+                  def sdkPath = properties.getProperty("flutter.sdk")
+                  if (sdkPath == null) {
+                      throw new GradleException("flutter.sdk not set in local.properties")
+                  }
+                  return sdkPath
+              }
+              plugins {
+                  id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
+              }
+          }
+
+          plugins {
+              id "com.android.application" version "8.9.1" apply false
+              id "org.jetbrains.kotlin.android" version "1.8.22" apply false
+              id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
+          }
+
+          include ":app"
+          EOF
           
-          # نئے فلٹر ورژن کے مطابق بالکل نئی اور درست فائل خود بنانا
+          # 2. ایپ لیول کی بلڈ فائل کو نئے سرے سے درست لکھنا
+          rm -f android/app/build.gradle.kts
           cat << 'EOF' > android/app/build.gradle.kts
           plugins {
               id("com.android.application")
@@ -87,7 +114,6 @@ jobs:
 
       - name: Build Application APK
         run: |
-          # ورژن کی تمام سختیوں کو بائی پاس کر کے بلڈ مکمل کرنا
           flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload Finished APK
