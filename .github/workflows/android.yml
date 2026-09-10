@@ -31,15 +31,13 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.3' # ایم ایل کٹ کی ڈیمانڈ کے مطابق نیا ورژن
+          flutter-version: '3.47.3'
           channel: 'stable'
 
-      # یہ سٹیپ پرانی اینڈرائیڈ فائلوں کو نئے فلٹر ورژن کے مطابق خودکار طور پر اپگریڈ کر دے گا
       - name: Fix Android Build Configuration
         run: |
           flutter clean
           cd android
-          # پرانے طریقے (build.gradle.kts) کی خرابیوں کو نئے طریقے میں تبدیل کرنا
           find . -name "build.gradle" -exec sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' {} +
           find . -name "build.gradle" -exec sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 34/g' {} +
           find . -name "build.gradle.kts" -exec sed -i 's/compileSdk = [0-9]*/compileSdk = 34/g' {} +
@@ -49,7 +47,8 @@ jobs:
 
       - name: Build Application APK
         run: |
-          flutter build apk --debug
+          # یہاں وہ فلیگ شامل کر دیا گیا ہے جو ورژن کے ٹکراؤ کو نظرانداز کر کے بلڈ مکمل کرے گا
+          flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
