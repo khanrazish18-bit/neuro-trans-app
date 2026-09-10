@@ -34,26 +34,19 @@ jobs:
           flutter-version: '3.47.3'
           channel: 'stable'
 
-      # یہ سٹیپ اینڈرائیڈ کی دونوں پریشان کن فائلوں کو مٹا کر بالکل نئے ورژنز لکھ دے گا
+      # یہ سٹیپ گوگل مارون سینٹرل سرور شامل کرے گا اور گریڈل پلگ ان کو مستحکم 8.7.3 پر سیٹ کرے گا
       - name: Completely Rewrite Android Configuration
         run: |
           flutter clean
           
-          # 1. پرانی سیٹنگز فائل کو مٹانا اور بالکل نیا گریڈل پلگ ان (8.9.1) لکھنا
+          # 1. نئی سیٹنگز فائل لکھنا (گوگل سرورز اور گریڈل پلگ ان 8.7.3 کے ساتھ)
           rm -f android/settings.gradle
           cat << 'EOF' > android/settings.gradle
           pluginManagement {
-              def flutterSdkPath = {
-                  def properties = new Properties()
-                  def propertiesFile = new File(settingsDir, "local.properties")
-                  if (propertiesFile.exists()) {
-                      propertiesFile.withReader("UTF-8") { reader -> properties.load(reader) }
-                  }
-                  def sdkPath = properties.getProperty("flutter.sdk")
-                  if (sdkPath == null) {
-                      throw new GradleException("flutter.sdk not set in local.properties")
-                  }
-                  return sdkPath
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
               }
               plugins {
                   id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
@@ -61,7 +54,7 @@ jobs:
           }
 
           plugins {
-              id "com.android.application" version "8.9.1" apply false
+              id "com.android.application" version "8.7.3" apply false
               id "org.jetbrains.kotlin.android" version "1.8.22" apply false
               id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
           }
@@ -69,7 +62,7 @@ jobs:
           include ":app"
           EOF
           
-          # 2. ایپ لیول کی بلڈ فائل کو نئے سرے سے درست لکھنا
+          # 2. ایپ لیول کی بلڈ فائل کو درست لکھنا
           rm -f android/app/build.gradle.kts
           cat << 'EOF' > android/app/build.gradle.kts
           plugins {
@@ -114,6 +107,7 @@ jobs:
 
       - name: Build Application APK
         run: |
+          # تمام پرانے ورژنز کی سخت چیکنگ بائی پاس کر کے بلڈ رن کرنا
           flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload Finished APK
