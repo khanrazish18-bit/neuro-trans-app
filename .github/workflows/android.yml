@@ -34,19 +34,32 @@ jobs:
           flutter-version: '3.47.3'
           channel: 'stable'
 
-      # یہ نیا اور پکا سٹیپ اینڈرائیڈ کو گریڈل پلگ ان ورژن کی چیکنگ مکمل بند کرنے پر مجبور کرے گا
-      - name: Bypass Android Gradle Plugin Validation
+      # یہ وہ جادوئی سٹیپ ہے جو پروجیکٹ کے گریڈل اور پلگ انز کو جڑ سے بالکل نئے ورژن پر اپگریڈ کر دے گا
+      - name: Complete Android Graduate/Plugin Upgrade
         run: |
           flutter clean
-          mkdir -p ~/.android
-          echo "android.experimental.skipDependencyValidation=true" >> android/local.properties
-          echo "android.experimental.skipDependencyValidation=true" >> android/gradle.properties || true
+          
+          # 1. گریڈل ریپر (Gradle Wrapper) کو 8.10.2 سے بڑھا کر 8.12 کرنا
+          if [ -f "android/gradle/wrapper/gradle-wrapper.properties" ]; then
+            sed -i 's/gradle-[0-9.]*-all.zip/gradle-8.12-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          fi
+          
+          # 2. اینڈرائیڈ گریڈل پلگ ان (AGP) کو 8.7.0 سے زبردستی 8.12.0 کرنا تاکہ نیا فلٹر مطمئن ہو جائے
+          find android -name "settings.gradle*" -exec sed -i 's/com.android.application" version "[0-9.]*"/com.android.application" version "8.12.0"/g' {} +
+          find android -name "build.gradle*" -exec sed -i 's/id("com.android.application") version "[0-9.]*"/id("com.android.application") version "8.12.0"/g' {} +
+          
+          # 3. تمام ضروری SDK سیٹنگز کو اپگریڈ کرنا
+          if [ -f "android/app/build.gradle.kts" ]; then
+            sed -i 's/compileSdk = [0-9]*/compileSdk = 36/g' android/app/build.gradle.kts
+            sed -i '/android {/a \    ndkVersion = "28.2.13676358"' android/app/build.gradle.kts
+          fi
+          
           flutter pub get
 
       - name: Build Application APK
         run: |
-          # فلیگ کے ساتھ بلڈ چلانا تاکہ پرانے ورژنز بلڈ کو نہ روک سکیں
-          flutter build apk --debug --android-skip-build-dependency-validation
+          # اب اینڈرائیڈ کا پورا سسٹم بالکل نیا ہو چکا ہے، اس لیے بلڈ کامیابی سے مکمل ہوگا
+          flutter build apk --debug
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
