@@ -31,21 +31,18 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.3' # گوگل ایم ایل کٹ کی ضرورت کے مطابق بالکل فکس
+          flutter-version: '3.19.6' # فلٹر کا یہ ورژن پرانے اور نئے دونوں طریقوں کو بغیر ایرر کے چلا دیتا ہے
           channel: 'stable'
 
-      # نیا سٹیپ 1: پرانی خراب ڈیپینڈینسیز کو نظرانداز اور ریموو کرنے کے لیے
-      - name: Remove Old/Incompatible Dependencies
+      - name: Force Upgrade Android SDK Settings
         run: |
           flutter clean
-          # نیچے دی گئی کمانڈز پرانے پلگ انز کو ہٹا دیں گی
-          flutter pub remove google_mlkit_commons google_ml_kit --none || true
-
-      # نیا سٹیپ 2: گوگل ایم ایل کٹ کے بالکل نئے ورژنز زبردستی شامل کرنے کے لیے
-      - name: Add Fresh Google ML Kit Dependencies
-        run: |
-          flutter pub add google_ml_kit
-          flutter pub add google_mlkit_commons
+          cd android
+          find . -name "build.gradle" -exec sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' {} +
+          find . -name "build.gradle" -exec sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 34/g' {} +
+          find . -name "build.gradle.kts" -exec sed -i 's/compileSdk = [0-9]*/compileSdk = 34/g' {} +
+          find . -name "build.gradle.kts" -exec sed -i 's/targetSdk = [0-9]*/targetSdk = 34/g' {} +
+          cd ..
           flutter pub get
 
       - name: Build Application APK
